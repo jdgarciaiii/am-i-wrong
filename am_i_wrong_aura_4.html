@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Am I Wrong?</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; background: #0d1a6e; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px 60px; }
+  .app { width: 100%; max-width: 420px; }
+  .page-blobs { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+  .page-blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.45; }
+  .aura-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; border-radius: inherit; z-index: 0; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(40px); opacity: 0.7; }
+  .app-header { position: relative; padding: 28px 24px 0; display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; }
+  .wordmark { font-size: 28px; font-weight: 500; color: #fff; letter-spacing: -1px; }
+  .wordmark em { font-style: normal; color: #FF9A5C; }
+  .tagline { font-size: 11px; color: rgba(255,255,255,0.35); letter-spacing: 0.5px; }
+  .content-wrap { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 16px; padding-top: 24px; }
+  .card { position: relative; background: rgba(255,255,255,0.05); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.15); border-radius: 24px; padding: 24px; overflow: hidden; }
+  .card-inner { position: relative; z-index: 1; }
+  .step-dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 4px; }
+  .step-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.15); }
+  .step-dot.active { background: #FF9A5C; }
+  .step-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; flex-shrink: 0; }
+  .avatar-me   { background: rgba(255,154,92,0.2); border: 1px solid rgba(255,154,92,0.4); color: #FF9A5C; }
+  .avatar-them { background: rgba(0,212,255,0.2);  border: 1px solid rgba(0,212,255,0.4);  color: #00D4FF; }
+  .step-title { font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.9); }
+  .step-sub   { font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 1px; }
+  .field-label { display: block; font-size: 10px; font-weight: 400; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 8px; }
+  textarea { width: 100%; resize: none; border-radius: 14px; padding: 14px 16px; outline: none; font-family: inherit; font-size: 13px; line-height: 1.55; color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); transition: border-color 0.2s; margin-bottom: 6px; }
+  textarea::placeholder { color: rgba(255,255,255,0.2); }
+  textarea.ta-me:focus   { border-color: #FF9A5C; }
+  textarea.ta-them:focus { border-color: #00D4FF; }
+  .char-count { text-align: right; font-size: 11px; color: rgba(255,255,255,0.25); margin-bottom: 20px; }
+  .btn-primary { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; border: none; border-radius: 14px; padding: 14px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
+  .btn-primary:hover    { opacity: 0.85; }
+  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn-pink { background: #FF9A5C; color: #fff; }
+  .btn-teal { background: #00D4FF; color: #021a2e; }
+  .btn-secondary { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 14px; padding: 14px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.55); }
+  .btn-secondary:hover { opacity: 0.8; }
+  .error-box { border-radius: 12px; padding: 12px 14px; background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.25); font-size: 12px; color: rgba(255,130,130,0.9); margin-bottom: 16px; }
+  .verdict-pill { text-align: center; margin-bottom: 20px; }
+  .verdict-pill span { display: inline-block; background: rgba(255,154,92,0.15); border: 1px solid rgba(255,154,92,0.3); border-radius: 999px; padding: 5px 16px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #FF9A5C; }
+  .verdict-headline { text-align: center; font-size: 44px; font-weight: 500; letter-spacing: -1.5px; line-height: 1.05; color: #FF9A5C; margin-bottom: 6px; }
+  .verdict-headline.wrong { color: #00D4FF; }
+  .verdict-headline.tie   { color: rgba(255,255,255,0.85); }
+  .verdict-quip { text-align: center; font-size: 12px; color: rgba(255,255,255,0.35); margin-bottom: 24px; }
+  .score-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .score-pill { border-radius: 18px; padding: 16px 8px; text-align: center; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); }
+  .score-pill.win-a { background: rgba(255,154,92,0.12); border-color: rgba(255,154,92,0.3); }
+  .score-pill.win-b { background: rgba(0,212,255,0.12);  border-color: rgba(0,212,255,0.3); }
+  .score-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 6px; }
+  .score-num { font-size: 30px; font-weight: 600; letter-spacing: -0.5px; color: rgba(255,255,255,0.2); }
+  .score-num.win-a { color: #FF9A5C; }
+  .score-num.win-b { color: #00D4FF; }
+  .progress-bar { height: 5px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; margin-bottom: 20px; }
+  .progress-fill { height: 100%; background: #FF9A5C; border-radius: 999px; transition: width 0.8s cubic-bezier(0.22,1,0.36,1); }
+  .info-card { border-radius: 14px; padding: 16px; margin-bottom: 10px; }
+  .info-card-ruling { background: rgba(255,154,92,0.08); border: 1px solid rgba(255,154,92,0.18); }
+  .info-card-advice { background: rgba(0,212,255,0.07);  border: 1px solid rgba(0,212,255,0.18); }
+  .info-card-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
+  .info-card-ruling .info-card-label { color: rgba(255,154,92,0.6); }
+  .info-card-advice .info-card-label { color: rgba(0,212,255,0.6); }
+  .info-card p { font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.75); }
+  .said-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; margin-top: 14px; }
+  .said-card { border-radius: 14px; padding: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+  .said-label-a { font-size: 10px; font-weight: 500; color: #FF9A5C; margin-bottom: 6px; }
+  .said-label-b { font-size: 10px; font-weight: 500; color: #00D4FF; margin-bottom: 6px; }
+  .said-card p { font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .overlay { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(18,40,192,0.75); backdrop-filter: blur(8px); }
+  .overlay-glow-a { position: absolute; top: 50%; left: 25%; transform: translate(-50%,-50%); width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(255,154,92,0.22) 0%, transparent 70%); pointer-events: none; }
+  .overlay-glow-b { position: absolute; top: 50%; left: 75%; transform: translate(-50%,-50%); width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(0,212,255,0.22) 0%, transparent 70%); pointer-events: none; }
+  .deliberate-card { position: relative; z-index: 1; background: rgba(255,255,255,0.08); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.15); border-radius: 24px; padding: 32px 28px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .bubbles-row { display: flex; align-items: flex-end; gap: 12px; }
+  .bubble { display: flex; align-items: center; gap: 6px; border-radius: 18px; padding: 12px 16px; }
+  .bubble-a { background: rgba(255,154,92,0.2); border: 1px solid rgba(255,154,92,0.35); border-bottom-left-radius: 4px; }
+  .bubble-b { background: rgba(0,212,255,0.15);  border: 1px solid rgba(0,212,255,0.3);  border-bottom-right-radius: 4px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; transition: opacity 0.25s, transform 0.25s; opacity: 0.25; }
+  .dot-a { background: #FF9A5C; }
+  .dot-b { background: #00D4FF; }
+  .dot.active { opacity: 1; transform: translateY(-5px); }
+  .deliberate-caption { font-size: 12px; color: rgba(255,255,255,0.4); font-style: italic; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  .fade-up { animation: fadeUp 0.45s cubic-bezier(0.22,1,0.36,1) both; }
+</style>
+</head>
+<body>
+
+<div class="page-blobs">
+  <div class="page-blob" style="width:500px;height:500px;background:#FF9A5C;top:-120px;left:-80px;"></div>
+  <div class="page-blob" style="width:480px;height:480px;background:#00D4FF;top:-100px;right:-90px;"></div>
+  <div class="page-blob" style="width:520px;height:520px;background:#1a6eff;top:40%;left:-120px;"></div>
+  <div class="page-blob" style="width:520px;height:520px;background:#1a6eff;top:35%;right:-120px;"></div>
+  <div class="page-blob" style="width:480px;height:480px;background:#FF9A5C;bottom:-100px;left:-80px;"></div>
+  <div class="page-blob" style="width:500px;height:500px;background:#00D4FF;bottom:-100px;right:-80px;"></div>
+</div>
+
+<div class="app">
+  <div class="app-header">
+    <div class="wordmark">am i <em>wrong?</em></div>
+    <div class="tagline">your friends are biased. we're not.</div>
+  </div>
+  <div class="content-wrap" id="appContent"></div>
+</div>
+
+<div class="overlay" id="overlay" style="display:none;">
+  <div class="overlay-glow-a"></div>
+  <div class="overlay-glow-b"></div>
+  <div class="deliberate-card">
+    <div class="bubbles-row">
+      <div class="bubble bubble-a">
+        <div class="dot dot-a" id="da1"></div><div class="dot dot-a" id="da2"></div><div class="dot dot-a" id="da3"></div>
+      </div>
+      <div class="bubble bubble-b">
+        <div class="dot dot-b" id="db1"></div><div class="dot dot-b" id="db2"></div><div class="dot dot-b" id="db3"></div>
+      </div>
+    </div>
+    <div class="deliberate-caption" id="deliberateCaption">results loading. breathe.</div>
+  </div>
+</div>
+
+<script>
+let sideA = '', sideB = '', verdictData = null;
+const captions = ['results loading. breathe.',"someone's mum just weighed in.",'your ex already voted.',"the numbers don't lie.",'someone just read this and sighed.','people felt this one.','this is a lot to unpack'];
+const rightQuips = ["not even close bestie.","you were right and you should say it.","they're cooked.","touch grass. they won't.","turns out you weren't crazy.","the math mathed.","go off."];
+const wrongQuips = ['babe. no.','you need to sit with this one.','log off. reflect. come back different.','you should probably say sorry.',"ratio'd by reality.",'honey. sweetheart. no.'];
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+let dotTimers = [], captionTimer = null;
+function startDeliberating() {
+  document.getElementById('overlay').style.display = 'flex';
+  let ci = 0;
+  captionTimer = setInterval(() => { ci=(ci+1)%captions.length; document.getElementById('deliberateCaption').textContent=captions[ci]; }, 2000);
+  function animDot(prefix, offset) {
+    [1,2,3].forEach((n,i) => {
+      const t = setTimeout(function loop() {
+        const el = document.getElementById(prefix+n); if(!el) return;
+        el.classList.add('active');
+        const t2 = setTimeout(() => { el.classList.remove('active'); const t3=setTimeout(loop,550); dotTimers.push(t3); }, 300);
+        dotTimers.push(t2);
+      }, i*200+offset);
+      dotTimers.push(t);
+    });
+  }
+  animDot('da',0); animDot('db',300);
+}
+function stopDeliberating() {
+  document.getElementById('overlay').style.display='none';
+  clearInterval(captionTimer); dotTimers.forEach(clearTimeout); dotTimers=[];
+}
+
+async function getVerdict(a, b) {
+  const prompt = `You are an impartial judge. Two people are in a conflict.
+
+Person A: ${a}
+
+Person B: ${b}
+
+Respond ONLY with valid JSON, no extra text:
+{"winner":"A","scoreA":76,"scoreB":24,"ruling":"Two sentences explaining your decision.","advice":"One sentence of actionable advice."}
+
+Rules: winner = "A", "B", or "tie". scoreA + scoreB = 100.`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+  });
+
+  if (!res.ok) throw new Error('API request failed (' + res.status + ')');
+  const data = await res.json();
+  const text = (data.content || []).map(b => b.type==='text'?b.text:'').join('');
+  let raw = text.trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'').trim();
+  const m = raw.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('No JSON in response');
+  const v = JSON.parse(m[0]);
+  if (!v.winner || v.scoreA==null || !v.ruling || !v.advice) throw new Error('Incomplete verdict');
+  return v;
+}
+
+function renderStepOne() {
+  document.getElementById('appContent').innerHTML = `
+    <div class="step-dots"><div class="step-dot active"></div><div class="step-dot"></div></div>
+    <div class="card fade-up">
+      <div class="aura-bg">
+        <div class="blob" style="width:130px;height:130px;background:#FF9A5C;top:-45px;right:-35px;"></div>
+        <div class="blob" style="width:120px;height:120px;background:#FF9A5C;bottom:-40px;left:-35px;"></div>
+      </div>
+      <div class="card-inner">
+        <div class="step-header">
+          <div class="avatar avatar-me">me</div>
+          <div><div class="step-title">My Side</div><div class="step-sub">Step 1 of 2</div></div>
+        </div>
+        <label class="field-label">Tell your side of the story</label>
+        <textarea id="ta1" class="ta-me" rows="6" maxlength="800" placeholder="Describe what happened from your perspective…"></textarea>
+        <div class="char-count"><span id="cc1">0</span>/800</div>
+        <button class="btn-primary btn-pink" id="btn1" disabled>Continue to their side <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+      </div>
+    </div>`;
+  const ta=document.getElementById('ta1'), btn=document.getElementById('btn1'), cc=document.getElementById('cc1');
+  ta.addEventListener('input',()=>{ sideA=ta.value.slice(0,800); ta.value=sideA; cc.textContent=sideA.length; btn.disabled=!sideA.trim(); });
+  btn.addEventListener('click',()=>{ if(sideA.trim()) renderStepTwo(); });
+}
+
+function renderStepTwo() {
+  document.getElementById('appContent').innerHTML = `
+    <div class="step-dots"><div class="step-dot"></div><div class="step-dot active"></div></div>
+    <div class="card fade-up">
+      <div class="aura-bg">
+        <div class="blob" style="width:130px;height:130px;background:#00D4FF;top:-45px;right:-35px;"></div>
+        <div class="blob" style="width:120px;height:120px;background:#00D4FF;bottom:-40px;left:-35px;"></div>
+      </div>
+      <div class="card-inner">
+        <div class="step-header">
+          <div class="avatar avatar-them">them</div>
+          <div><div class="step-title">Their Side</div><div class="step-sub">Step 2 — then we deliberate</div></div>
+        </div>
+        <label class="field-label">Their side of the story</label>
+        <textarea id="ta2" class="ta-them" rows="6" maxlength="800" placeholder="Describe what happened from their perspective…"></textarea>
+        <div class="char-count"><span id="cc2">0</span>/800</div>
+        <div class="error-box" id="errBox" style="display:none;"></div>
+        <button class="btn-primary btn-teal" id="btn2" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20z"/><polyline points="16 12 12 8 8 12"/><line x1="12" y1="16" x2="12" y2="8"/></svg>
+          Get verdict
+        </button>
+      </div>
+    </div>`;
+  const ta=document.getElementById('ta2'), btn=document.getElementById('btn2'), cc=document.getElementById('cc2'), err=document.getElementById('errBox');
+  ta.addEventListener('input',()=>{ sideB=ta.value.slice(0,800); ta.value=sideB; cc.textContent=sideB.length; btn.disabled=!sideB.trim(); });
+  btn.addEventListener('click', async()=>{
+    if(!sideB.trim()) return;
+    btn.disabled=true; err.style.display='none';
+    startDeliberating();
+    try {
+      verdictData = await getVerdict(sideA, sideB);
+      stopDeliberating(); renderVerdict();
+    } catch(e) {
+      stopDeliberating(); btn.disabled=false;
+      err.style.display='block';
+      err.textContent = 'Something went wrong — ' + (e.message||'please try again.');
+    }
+  });
+}
+
+function renderVerdict() {
+  const v=verdictData, isRight=v.winner==='A', isTie=v.winner==='tie';
+  const quip=isTie?'the math mathed.':isRight?pick(rightQuips):pick(wrongQuips);
+  const hc=isRight?'':isTie?'tie':'wrong';
+  const ht=isTie?"it's a tie.":isRight?"you're right.":"you're wrong.";
+  const ac=isRight||isTie?'win-a':'', bc=!isRight&&!isTie?'win-b':'';
+  document.getElementById('appContent').innerHTML = `
+    <div class="card fade-up">
+      <div class="aura-bg">
+        <div class="blob" style="width:120px;height:120px;background:#FF9A5C;top:-40px;left:-30px;"></div>
+        <div class="blob" style="width:120px;height:120px;background:#00D4FF;top:-40px;right:-30px;"></div>
+        <div class="blob" style="width:110px;height:110px;background:#00D4FF;bottom:-35px;left:-30px;"></div>
+        <div class="blob" style="width:110px;height:110px;background:#FF9A5C;bottom:-35px;right:-30px;"></div>
+      </div>
+      <div class="card-inner">
+        <div class="verdict-pill"><span>The Verdict Is In</span></div>
+        <div class="verdict-headline ${hc}">${ht}</div>
+        <div class="verdict-quip">${quip}</div>
+        <div class="score-row">
+          <div class="score-pill ${ac}"><div class="score-label">My side</div><div class="score-num ${ac}">${v.scoreA}%</div></div>
+          <div class="score-pill ${bc}"><div class="score-label">Their side</div><div class="score-num ${bc}">${v.scoreB}%</div></div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="pf" style="width:0%"></div></div>
+        <div class="info-card info-card-ruling"><div class="info-card-label">Ruling</div><p>${v.ruling}</p></div>
+        <div class="info-card info-card-advice"><div class="info-card-label">Advice</div><p>${v.advice}</p></div>
+        <div class="said-row">
+          <div class="said-card"><div class="said-label-a">You said</div><p>${sideA}</p></div>
+          <div class="said-card"><div class="said-label-b">They said</div><p>${sideB}</p></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-primary btn-pink" id="btnShare" style="flex:1;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            Share verdict
+          </button>
+          <button class="btn-secondary" id="btnReset">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.33"/></svg>
+            New dispute
+          </button>
+        </div>
+      </div>
+    </div>`;
+  requestAnimationFrame(()=>setTimeout(()=>{ const pf=document.getElementById('pf'); if(pf) pf.style.width=v.scoreA+'%'; },100));
+  document.getElementById('btnReset').addEventListener('click',()=>{ sideA=''; sideB=''; verdictData=null; renderStepOne(); });
+  document.getElementById('btnShare').addEventListener('click',()=>{
+    const text=`Am I Wrong?\n${ht.toUpperCase()}\nMy side: ${v.scoreA}% | Their side: ${v.scoreB}%\n"${v.ruling}"`;
+    if(navigator.share) navigator.share({title:'Am I Wrong?',text});
+    else navigator.clipboard.writeText(text).then(()=>{ const b=document.getElementById('btnShare'); if(b){b.textContent='Copied!'; setTimeout(()=>b.textContent='Share verdict',2000);} });
+  });
+}
+
+renderStepOne();
+</script>
+</body>
+</html>
