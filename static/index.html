@@ -158,30 +158,18 @@ function stopDeliberating() {
 }
 
 async function getVerdict(a, b) {
-  const prompt = `You are an impartial judge. Two people are in a conflict.
-
-Person A: ${a}
-
-Person B: ${b}
-
-Respond ONLY with valid JSON, no extra text:
-{"winner":"A","scoreA":76,"scoreB":24,"ruling":"Two sentences explaining your decision.","advice":"One sentence of actionable advice."}
-
-Rules: winner = "A", "B", or "tie". scoreA + scoreB = 100.`;
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('/api/verdict', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+    body: JSON.stringify({ sideA: a, sideB: b })
   });
 
-  if (!res.ok) throw new Error('API request failed (' + res.status + ')');
-  const data = await res.json();
-  const text = (data.content || []).map(b => b.type==='text'?b.text:'').join('');
-  let raw = text.trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'').trim();
-  const m = raw.match(/\{[\s\S]*\}/);
-  if (!m) throw new Error('No JSON in response');
-  const v = JSON.parse(m[0]);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || 'API request failed (' + res.status + ')');
+  }
+  
+  const v = await res.json();
   if (!v.winner || v.scoreA==null || !v.ruling || !v.advice) throw new Error('Incomplete verdict');
   return v;
 }

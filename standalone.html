@@ -157,33 +157,41 @@ function stopDeliberating() {
   clearInterval(captionTimer); dotTimers.forEach(clearTimeout); dotTimers=[];
 }
 
+// Mock API function for demonstration - replace with real API call
 async function getVerdict(a, b) {
-  const prompt = `You are an impartial judge. Two people are in a conflict.
-
-Person A: ${a}
-
-Person B: ${b}
-
-Respond ONLY with valid JSON, no extra text:
-{"winner":"A","scoreA":76,"scoreB":24,"ruling":"Two sentences explaining your decision.","advice":"One sentence of actionable advice."}
-
-Rules: winner = "A", "B", or "tie". scoreA + scoreB = 100.`;
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
-  });
-
-  if (!res.ok) throw new Error('API request failed (' + res.status + ')');
-  const data = await res.json();
-  const text = (data.content || []).map(b => b.type==='text'?b.text:'').join('');
-  let raw = text.trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'').trim();
-  const m = raw.match(/\{[\s\S]*\}/);
-  if (!m) throw new Error('No JSON in response');
-  const v = JSON.parse(m[0]);
-  if (!v.winner || v.scoreA==null || !v.ruling || !v.advice) throw new Error('Incomplete verdict');
-  return v;
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  // Generate mock verdict based on content analysis
+  const aLength = a.length;
+  const bLength = b.length;
+  const aWords = a.split(/\s+/).length;
+  const bWords = b.split(/\s+/).length;
+  
+  // Simple logic for demonstration
+  let winner, scoreA, scoreB, ruling, advice;
+  
+  if (aWords > bWords * 1.5) {
+    winner = 'B';
+    scoreA = 35;
+    scoreB = 65;
+    ruling = "Person B was more concise and focused on key issues.";
+    advice = "Consider being more direct in your arguments.";
+  } else if (bWords > aWords * 1.5) {
+    winner = 'A';
+    scoreA = 65;
+    scoreB = 35;
+    ruling = "Person A communicated more effectively with reasonable detail.";
+    advice = "Try to be more thorough in explaining your perspective.";
+  } else {
+    winner = 'tie';
+    scoreA = 50;
+    scoreB = 50;
+    ruling = "Both parties presented their cases equally well.";
+    advice = "Consider finding common ground and compromising.";
+  }
+  
+  return { winner, scoreA, scoreB, ruling, advice };
 }
 
 function renderStepOne() {
