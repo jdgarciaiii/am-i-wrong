@@ -8,7 +8,7 @@ import time
 import secrets
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=['*'])
 
 # Get API key from environment variable
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
