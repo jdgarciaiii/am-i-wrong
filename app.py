@@ -18,12 +18,7 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024
 
 # CORS — lock down to your app origins only
-CORS(app, origins=[
-    'capacitor://localhost',
-    'ionic://localhost',
-    'http://localhost',
-    'https://web-production-12c6c.up.railway.app'
-])
+CORS(app, origins=['*'])
 
 # Get API key from environment variable
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
